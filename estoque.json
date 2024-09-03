@@ -1,0 +1,14 @@
+{
+    "2121": {
+        "id_produto": 2121,
+        "nome": "maca",
+        "quantidade": 50,
+        "preco": 2.5
+    },
+    "2222": {
+        "id_produto": 2222,
+        "nome": "coca-cola",
+        "quantidade": 150,
+        "preco": 9.5
+    }
+}
