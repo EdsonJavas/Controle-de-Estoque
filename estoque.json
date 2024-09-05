@@ -3,12 +3,119 @@
         "id_produto": 2121,
         "nome": "maca",
         "quantidade": 50,
-        "preco": 2.5
+        "preco": 2.5,
+        "validade": "05/09/2024"
     },
     "2222": {
         "id_produto": 2222,
         "nome": "coca-cola",
         "quantidade": 150,
-        "preco": 9.5
+        "preco": 9.5,
+        "validade": "05/09/2024"
+    },
+    "2020": {
+        "id_produto": 2020,
+        "nome": "pera",
+        "quantidade": 15,
+        "preco": 20.1,
+        "validade": "05/09/2024"
+    },
+    "9090": {
+        "id_produto": 9090,
+        "nome": "goiaba",
+        "quantidade": 900,
+        "preco": 1.99,
+        "validade": "06/09/2024"
+    },
+    "3030": {
+        "id_produto": 3030,
+        "nome": "banana",
+        "quantidade": 300,
+        "preco": 3.99,
+        "validade": "10/09/2024"
+    },
+    "4040": {
+        "id_produto": 4040,
+        "nome": "abacaxi",
+        "quantidade": 40,
+        "preco": 5.0,
+        "validade": "15/09/2024"
+    },
+    "5050": {
+        "id_produto": 5050,
+        "nome": "laranja",
+        "quantidade": 100,
+        "preco": 2.0,
+        "validade": "12/09/2024"
+    },
+    "6060": {
+        "id_produto": 6060,
+        "nome": "uva",
+        "quantidade": 200,
+        "preco": 4.5,
+        "validade": "07/09/2024"
+    },
+    "7070": {
+        "id_produto": 7070,
+        "nome": "morango",
+        "quantidade": 25,
+        "preco": 10.0,
+        "validade": "08/09/2024"
+    },
+    "8080": {
+        "id_produto": 8080,
+        "nome": "melancia",
+        "quantidade": 10,
+        "preco": 12.99,
+        "validade": "20/09/2024"
+    },
+    "1010": {
+        "id_produto": 1010,
+        "nome": "kiwi",
+        "quantidade": 15,
+        "preco": 7.99,
+        "validade": "09/09/2024"
+    },
+    "1111": {
+        "id_produto": 1111,
+        "nome": "tomate",
+        "quantidade": 60,
+        "preco": 3.0,
+        "validade": "11/09/2024"
+    },
+    "1313": {
+        "id_produto": 1313,
+        "nome": "alface",
+        "quantidade": 30,
+        "preco": 1.5,
+        "validade": "18/09/2024"
+    },
+    "1515": {
+        "id_produto": 1515,
+        "nome": "cenoura",
+        "quantidade": 45,
+        "preco": 2.2,
+        "validade": "22/09/2024"
+    },
+    "1717": {
+        "id_produto": 1717,
+        "nome": "beterraba",
+        "quantidade": 25,
+        "preco": 3.3,
+        "validade": "25/09/2024"
+    },
+    "1818": {
+        "id_produto": 1818,
+        "nome": "couve",
+        "quantidade": 20,
+        "preco": 1.8,
+        "validade": "27/09/2024"
+    },
+    "1919": {
+        "id_produto": 1919,
+        "nome": "alho",
+        "quantidade": 500,
+        "preco": 6.0,
+        "validade": "30/09/2024"
     }
 }
