@@ -1,12 +1,9 @@
 import json
-import csv
 from colorama import Fore, Back, Style, init
 from datetime import datetime, timedelta
 
-# Inicializa o colorama para suportar as cores no Windows
 init(autoreset=True)
 
-# Paletas de cores para diferentes opções
 PALETA_ADICIONAR = {
     'titulo': Fore.LIGHTGREEN_EX + Back.BLACK,
     'texto': Fore.GREEN + Back.BLACK,
@@ -37,7 +34,10 @@ def entrada_inteira(mensagem):
     """Função para garantir que o usuário insira um valor inteiro válido."""
     while True:
         try:
-            return int(input(mensagem))
+            valor = input(mensagem)
+            if valor == '':
+                return None
+            return int(valor)
         except ValueError:
             print(f"{Fore.RED}Valor inválido. Digite um número inteiro.{Style.RESET_ALL}")
 
@@ -45,7 +45,10 @@ def entrada_float(mensagem):
     """Função para garantir que o usuário insira um valor float válido."""
     while True:
         try:
-            return float(input(mensagem).replace(',', '.'))
+            valor = input(mensagem).replace(',', '.')
+            if valor == '':
+                return None
+            return float(valor)
         except ValueError:
             print(f"{Fore.RED}Valor inválido. Digite um número real (float).{Style.RESET_ALL}")
 
@@ -53,6 +56,8 @@ def entrada_data(mensagem):
     """Função para garantir que o usuário insira uma data válida no formato dd/mm/yyyy."""
     while True:
         data_str = input(mensagem)
+        if data_str == '':
+            return None
         try:
             data = datetime.strptime(data_str, "%d/%m/%Y")
             if data < datetime.now():
@@ -71,10 +76,12 @@ class Produto:
         self.validade = validade
 
     def atualizar_quantidade(self, nova_quantidade: int):
-        self.quantidade = nova_quantidade
+        if nova_quantidade is not None:
+            self.quantidade = nova_quantidade
 
     def atualizar_preco(self, novo_preco: float):
-        self.preco = novo_preco
+        if novo_preco is not None:
+            self.preco = novo_preco
 
     def to_dict(self):
         return {
@@ -122,10 +129,8 @@ class SistemaEstoque:
     def atualizar_produto(self, id_produto: int, quantidade: int = None, preco: float = None):
         produto = self.estoque.get(id_produto)
         if produto:
-            if quantidade is not None:
-                produto.atualizar_quantidade(quantidade)
-            if preco is not None:
-                produto.atualizar_preco(preco)
+            produto.atualizar_quantidade(quantidade)
+            produto.atualizar_preco(preco)
             self.salvar_estoque()
             print(f"{Fore.GREEN}Produto {produto.nome} atualizado com sucesso!{Style.RESET_ALL}")
         else:
@@ -147,8 +152,10 @@ class SistemaEstoque:
             for produto in self.estoque.values():
                 print(produto)
                 print(f"{Fore.CYAN}{'-'*40}{Style.RESET_ALL}")
+        self.perguntar_proximo_passo()
 
     def salvar_estoque(self):
+        """Salva o estoque em um arquivo JSON."""
         with open(self.arquivo_json, 'w') as arquivo:
             json.dump({id_produto: produto.to_dict() for id_produto, produto in self.estoque.items()}, arquivo)
         print(f"{Fore.GREEN}Estoque salvo em {self.arquivo_json}.{Style.RESET_ALL}")
@@ -162,43 +169,97 @@ class SistemaEstoque:
         except FileNotFoundError:
             print(f"{Fore.YELLOW}Arquivo {self.arquivo_json} não encontrado, iniciando com estoque vazio.{Style.RESET_ALL}")
 
-    def buscar_produto(self, termo):
-        """Busca produto pelo nome ou ID."""
-        resultados = []
-        for produto in self.estoque.values():
-            if termo.lower() in produto.nome.lower() or str(produto.id_produto) == str(termo):
-                resultados.append(produto)
-        if resultados:
-            for resultado in resultados:
-                print(resultado)
-        else:
-            print(f"{Fore.RED}Nenhum produto encontrado para '{termo}'.{Style.RESET_ALL}")
-
-    def listar_por_validade(self):
-        """Exibe os produtos ordenados por data de validade."""
-        produtos_ordenados = sorted(self.estoque.values(), key=lambda produto: produto.validade)
-        for produto in produtos_ordenados:
-            print(produto)
-
     def produtos_proximos_vencimento(self, dias=30):
-        """Lista produtos cuja validade está próxima de vencer."""
+        """Lista produtos cuja validade está próxima de vencer dentro de X dias."""
         hoje = datetime.now()
-        proximos = [p for p in self.estoque.values() if 0 <= (p.validade - hoje).days <= dias]
+        proximos = [
+            produto for produto in self.estoque.values()
+            if 0 <= (produto.validade - hoje).days <= dias
+        ]
         if proximos:
             print(f"{Fore.LIGHTRED_EX}Produtos próximos do vencimento (em até {dias} dias):{Style.RESET_ALL}")
             for produto in proximos:
                 print(produto)
         else:
             print(f"{Fore.GREEN}Nenhum produto próximo do vencimento.{Style.RESET_ALL}")
+        self.perguntar_proximo_passo()
 
-    def gerar_relatorio_csv(self, arquivo_csv="relatorio_estoque.csv"):
-        """Gera um relatório do estoque em formato CSV."""
-        with open(arquivo_csv, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['ID Produto', 'Nome', 'Quantidade', 'Preço', 'Validade'])
-            for produto in self.estoque.values():
-                writer.writerow([produto.id_produto, produto.nome, produto.quantidade, produto.preco, produto.validade.strftime("%d/%m/%Y")])
-        print(f"{Fore.GREEN}Relatório gerado em {arquivo_csv}.{Style.RESET_ALL}")
+    def perguntar_proximo_passo(self):
+        """Pergunta ao usuário se deseja voltar ao menu ou sair."""
+        opcao = input(f"{PALETA_MENU}Deseja voltar ao menu? (s/n): {Style.RESET_ALL}")
+        if opcao.lower() != 's':
+            print(f"{Fore.LIGHTMAGENTA_EX}Encerrando o sistema...{Style.RESET_ALL}")
+            exit()
+
+    def buscar_com_filtros_interativo(self):
+        """Busca produtos com filtros selecionados interativamente pelo usuário."""
+        print(f"\n{PALETA_EXIBIR['titulo']}--- Buscar Produtos com Filtros ---{Style.RESET_ALL}\n")
+        filtros_disponiveis = {
+            '1': 'Nome do Produto',
+            '2': 'ID do Produto',
+            '3': 'Quantidade Mínima',
+            '4': 'Preço Máximo',
+            '5': 'Validade Mínima'
+        }
+
+        filtros_selecionados = []
+        while True:
+            print("Selecione os filtros que deseja aplicar:")
+            for chave, valor in filtros_disponiveis.items():
+                print(f"{chave}. {valor}")
+            print("6. Iniciar busca")
+
+            escolha = input(f"{PALETA_EXIBIR['input']}Escolha uma opção (1-6): {Style.RESET_ALL}")
+
+            if escolha in filtros_disponiveis:
+                if escolha in filtros_selecionados:
+                    print(f"{Fore.YELLOW}Filtro já selecionado.{Style.RESET_ALL}")
+                    continue
+                filtros_selecionados.append(escolha)
+                print(f"{Fore.GREEN}Filtro '{filtros_disponiveis[escolha]}' adicionado.{Style.RESET_ALL}")
+            elif escolha == '6':
+                break
+            else:
+                print(f"{Fore.RED}Opção inválida, tente novamente.{Style.RESET_ALL}")
+
+        # Coleta dos valores dos filtros selecionados
+        nome = id_produto = quantidade_min = preco_max = validade_min = None
+        for filtro in filtros_selecionados:
+            if filtro == '1':
+                nome = input(f"{PALETA_EXIBIR['input']}Nome do Produto: {Style.RESET_ALL}")
+            elif filtro == '2':
+                id_produto = entrada_inteira(f"{PALETA_EXIBIR['input']}ID do Produto: {Style.RESET_ALL}")
+            elif filtro == '3':
+                quantidade_min = entrada_inteira(f"{PALETA_EXIBIR['input']}Quantidade Mínima: {Style.RESET_ALL}")
+            elif filtro == '4':
+                preco_max = entrada_float(f"{PALETA_EXIBIR['input']}Preço Máximo: R$ {Style.RESET_ALL}")
+            elif filtro == '5':
+                validade_min = entrada_data(f"{PALETA_EXIBIR['input']}Validade Mínima (dd/mm/yyyy): {Style.RESET_ALL}")
+
+        self.buscar_com_filtros(nome, id_produto, quantidade_min, preco_max, validade_min)
+
+    def buscar_com_filtros(self, nome=None, id_produto=None, quantidade_min=None, preco_max=None, validade_min=None):
+        """Busca produtos com base em filtros avançados."""
+        resultados = []
+        for produto in self.estoque.values():
+            if nome and nome.lower() not in produto.nome.lower():
+                continue
+            if id_produto and produto.id_produto != id_produto:
+                continue
+            if quantidade_min is not None and produto.quantidade < quantidade_min:
+                continue
+            if preco_max is not None and produto.preco > preco_max:
+                continue
+            if validade_min and produto.validade < validade_min:
+                continue
+            resultados.append(produto)
+
+        if resultados:
+            for resultado in resultados:
+                print(resultado)
+        else:
+            print(f"{Fore.RED}Nenhum produto encontrado com os critérios fornecidos.{Style.RESET_ALL}")
+        self.perguntar_proximo_passo()
 
 def desenhar_menu():
     """Desenha o menu sem centralização, alinhado à esquerda."""
@@ -210,11 +271,10 @@ def desenhar_menu():
     print(f"| 2. Atualizar Produto                     |")
     print(f"| 3. Remover Produto                       |")
     print(f"| 4. Exibir Estoque                        |")
-    print(f"| 5. Buscar Produto                        |")
+    print(f"| 5. Buscar Produtos com Filtros           |")
     print(f"| 6. Listar por Validade                   |")
     print(f"| 7. Produtos Próximos ao Vencimento       |")
-    print(f"| 8. Gerar Relatório CSV                   |")
-    print(f"| 9. Sair                                  |")
+    print(f"| 8. Sair                                  |")
     print("+" + "-" * largura + "+")
 
 def main():
@@ -245,8 +305,8 @@ def main():
                 print(f"{Fore.RED}Produto com ID {id_produto} não encontrado.{Style.RESET_ALL}")
                 continue
 
-            quantidade = entrada_inteira(f"{PALETA_ATUALIZAR['input']}Nova Quantidade (ou deixe em branco para manter): {Style.RESET_ALL}") or None
-            preco = entrada_float(f"{PALETA_ATUALIZAR['input']}Novo Preço (ou deixe em branco para manter): R$ {Style.RESET_ALL}") or None
+            quantidade = entrada_inteira(f"{PALETA_ATUALIZAR['input']}Nova Quantidade (ou deixe em branco para manter): {Style.RESET_ALL}")
+            preco = entrada_float(f"{PALETA_ATUALIZAR['input']}Novo Preço (ou deixe em branco para manter): R$ {Style.RESET_ALL}")
             sistema_estoque.atualizar_produto(id_produto, quantidade, preco)
 
         elif opcao == '3':
@@ -263,8 +323,7 @@ def main():
             sistema_estoque.exibir_estoque()
 
         elif opcao == '5':
-            termo = input(f"{PALETA_EXIBIR['input']}Digite o nome ou ID do produto: {Style.RESET_ALL}")
-            sistema_estoque.buscar_produto(termo)
+            sistema_estoque.buscar_com_filtros_interativo()
 
         elif opcao == '6':
             print(f"\n{PALETA_EXIBIR['titulo']}--- Listar Produtos por Validade ---{Style.RESET_ALL}\n")
@@ -275,9 +334,6 @@ def main():
             sistema_estoque.produtos_proximos_vencimento(dias)
 
         elif opcao == '8':
-            sistema_estoque.gerar_relatorio_csv()
-
-        elif opcao == '9':
             print(f"\n{Fore.LIGHTMAGENTA_EX}Encerrando o sistema...{Style.RESET_ALL}")
             break
 
