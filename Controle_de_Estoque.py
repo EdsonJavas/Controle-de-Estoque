@@ -1,6 +1,6 @@
 import json
 from colorama import Fore, Back, Style, init
-from datetime import datetime, timedelta
+from datetime import datetime
 
 init(autoreset=True)
 
@@ -31,7 +31,6 @@ PALETA_EXIBIR = {
 PALETA_MENU = Fore.LIGHTYELLOW_EX + Back.BLACK
 
 def entrada_inteira(mensagem):
-    """Função para garantir que o usuário insira um valor inteiro válido."""
     while True:
         try:
             valor = input(mensagem)
@@ -42,7 +41,6 @@ def entrada_inteira(mensagem):
             print(f"{Fore.RED}Valor inválido. Digite um número inteiro.{Style.RESET_ALL}")
 
 def entrada_float(mensagem):
-    """Função para garantir que o usuário insira um valor float válido."""
     while True:
         try:
             valor = input(mensagem).replace(',', '.')
@@ -53,7 +51,6 @@ def entrada_float(mensagem):
             print(f"{Fore.RED}Valor inválido. Digite um número real (float).{Style.RESET_ALL}")
 
 def entrada_data(mensagem):
-    """Função para garantir que o usuário insira uma data válida no formato dd/mm/yyyy."""
     while True:
         data_str = input(mensagem)
         if data_str == '':
@@ -95,10 +92,7 @@ class Produto:
     @classmethod
     def from_dict(cls, dados):
         validade_str = dados.get('validade')
-        if validade_str:
-            validade = datetime.strptime(validade_str, "%d/%m/%Y")
-        else:
-            validade = datetime.now()  # Define uma data padrão ou outra lógica
+        validade = datetime.strptime(validade_str, "%d/%m/%Y") if validade_str else datetime.now()
         return cls(dados['id_produto'], dados['nome'], dados['quantidade'], dados['preco'], validade)
 
     def __str__(self):
@@ -115,7 +109,6 @@ class SistemaEstoque:
         self.carregar_estoque()
 
     def produto_existe(self, id_produto):
-        """Verifica se um produto com o ID especificado já existe."""
         return id_produto in self.estoque
 
     def adicionar_produto(self, produto: Produto):
@@ -155,7 +148,6 @@ class SistemaEstoque:
         self.perguntar_proximo_passo()
 
     def salvar_estoque(self):
-        """Salva o estoque em um arquivo JSON."""
         with open(self.arquivo_json, 'w') as arquivo:
             json.dump({id_produto: produto.to_dict() for id_produto, produto in self.estoque.items()}, arquivo)
         print(f"{Fore.GREEN}Estoque salvo em {self.arquivo_json}.{Style.RESET_ALL}")
@@ -170,7 +162,6 @@ class SistemaEstoque:
             print(f"{Fore.YELLOW}Arquivo {self.arquivo_json} não encontrado, iniciando com estoque vazio.{Style.RESET_ALL}")
 
     def produtos_proximos_vencimento(self, dias=30):
-        """Lista produtos cuja validade está próxima de vencer dentro de X dias."""
         hoje = datetime.now()
         proximos = [
             produto for produto in self.estoque.values()
@@ -184,62 +175,59 @@ class SistemaEstoque:
             print(f"{Fore.GREEN}Nenhum produto próximo do vencimento.{Style.RESET_ALL}")
         self.perguntar_proximo_passo()
 
+    def listar_por_validade(self):
+        produtos_ordenados = sorted(self.estoque.values(), key=lambda p: p.validade)
+        if produtos_ordenados:
+            print(f"{Fore.LIGHTBLUE_EX}Produtos listados por data de validade:{Style.RESET_ALL}")
+            for produto in produtos_ordenados:
+                print(produto)
+        else:
+            print(f"{Fore.YELLOW}Nenhum produto encontrado.{Style.RESET_ALL}")
+        self.perguntar_proximo_passo()
+
     def perguntar_proximo_passo(self):
-        """Pergunta ao usuário se deseja voltar ao menu ou sair."""
         opcao = input(f"{PALETA_MENU}Deseja voltar ao menu? (s/n): {Style.RESET_ALL}")
         if opcao.lower() != 's':
             print(f"{Fore.LIGHTMAGENTA_EX}Encerrando o sistema...{Style.RESET_ALL}")
             exit()
 
     def buscar_com_filtros_interativo(self):
-        """Busca produtos com filtros selecionados interativamente pelo usuário."""
         print(f"\n{PALETA_EXIBIR['titulo']}--- Buscar Produtos com Filtros ---{Style.RESET_ALL}\n")
         filtros_disponiveis = {
             '1': 'Nome do Produto',
             '2': 'ID do Produto',
-            '3': 'Quantidade Mínima',
-            '4': 'Preço Máximo',
-            '5': 'Validade Mínima'
+            '3': 'Quantidade',
+            '4': 'Preço',
+            '5': 'Validade (dd/mm/yyyy)'
         }
 
-        filtros_selecionados = []
-        while True:
-            print("Selecione os filtros que deseja aplicar:")
-            for chave, valor in filtros_disponiveis.items():
-                print(f"{chave}. {valor}")
-            print("6. Iniciar busca")
+        print("Selecione apenas um filtro que deseja aplicar:")
+        for chave, valor in filtros_disponiveis.items():
+            print(f"{chave}. {valor}")
+        print("6. Iniciar busca")
 
-            escolha = input(f"{PALETA_EXIBIR['input']}Escolha uma opção (1-6): {Style.RESET_ALL}")
+        escolha = input(f"{PALETA_EXIBIR['input']}Escolha uma opção (1-6): {Style.RESET_ALL}")
 
-            if escolha in filtros_disponiveis:
-                if escolha in filtros_selecionados:
-                    print(f"{Fore.YELLOW}Filtro já selecionado.{Style.RESET_ALL}")
-                    continue
-                filtros_selecionados.append(escolha)
-                print(f"{Fore.GREEN}Filtro '{filtros_disponiveis[escolha]}' adicionado.{Style.RESET_ALL}")
-            elif escolha == '6':
-                break
-            else:
-                print(f"{Fore.RED}Opção inválida, tente novamente.{Style.RESET_ALL}")
+        if escolha not in filtros_disponiveis:
+            print(f"{Fore.RED}Opção inválida, tente novamente.{Style.RESET_ALL}")
+            return
 
-        # Coleta dos valores dos filtros selecionados
         nome = id_produto = quantidade_min = preco_max = validade_min = None
-        for filtro in filtros_selecionados:
-            if filtro == '1':
-                nome = input(f"{PALETA_EXIBIR['input']}Nome do Produto: {Style.RESET_ALL}")
-            elif filtro == '2':
-                id_produto = entrada_inteira(f"{PALETA_EXIBIR['input']}ID do Produto: {Style.RESET_ALL}")
-            elif filtro == '3':
-                quantidade_min = entrada_inteira(f"{PALETA_EXIBIR['input']}Quantidade Mínima: {Style.RESET_ALL}")
-            elif filtro == '4':
-                preco_max = entrada_float(f"{PALETA_EXIBIR['input']}Preço Máximo: R$ {Style.RESET_ALL}")
-            elif filtro == '5':
-                validade_min = entrada_data(f"{PALETA_EXIBIR['input']}Validade Mínima (dd/mm/yyyy): {Style.RESET_ALL}")
+
+        if escolha == '1':
+            nome = input(f"{PALETA_EXIBIR['input']}Nome do Produto: {Style.RESET_ALL}")
+        elif escolha == '2':
+            id_produto = entrada_inteira(f"{PALETA_EXIBIR['input']}ID do Produto: {Style.RESET_ALL}")
+        elif escolha == '3':
+            quantidade_min = entrada_inteira(f"{PALETA_EXIBIR['input']}Quantidade Mínima: {Style.RESET_ALL}")
+        elif escolha == '4':
+            preco_max = entrada_float(f"{PALETA_EXIBIR['input']}Preço Máximo: R$ {Style.RESET_ALL}")
+        elif escolha == '5':
+            validade_min = entrada_data(f"{PALETA_EXIBIR['input']}Validade Mínima (dd/mm/yyyy): {Style.RESET_ALL}")
 
         self.buscar_com_filtros(nome, id_produto, quantidade_min, preco_max, validade_min)
 
     def buscar_com_filtros(self, nome=None, id_produto=None, quantidade_min=None, preco_max=None, validade_min=None):
-        """Busca produtos com base em filtros avançados."""
         resultados = []
         for produto in self.estoque.values():
             if nome and nome.lower() not in produto.nome.lower():
@@ -262,7 +250,6 @@ class SistemaEstoque:
         self.perguntar_proximo_passo()
 
 def desenhar_menu():
-    """Desenha o menu sem centralização, alinhado à esquerda."""
     largura = 40
     print("\n" + "+" + "-" * largura + "+")
     print(f"| Sistema de Controle de Estoque           |")
