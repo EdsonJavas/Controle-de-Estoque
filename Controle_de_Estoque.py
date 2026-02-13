@@ -111,6 +111,12 @@ class SistemaEstoque:
     def produto_existe(self, id_produto):
         return id_produto in self.estoque
 
+    def proximo_id_disponivel(self):
+        """Retorna um ID sugerido (maior ID atual + 1) ou 1 se estoque vazio."""
+        if not self.estoque:
+            return 1
+        return max(self.estoque.keys()) + 1
+
     def adicionar_produto(self, produto: Produto):
         if self.produto_existe(produto.id_produto):
             print(f"{Fore.RED}Produto com ID {produto.id_produto} já existe.{Style.RESET_ALL}")
@@ -121,13 +127,22 @@ class SistemaEstoque:
 
     def atualizar_produto(self, id_produto: int, quantidade: int = None, preco: float = None):
         produto = self.estoque.get(id_produto)
-        if produto:
-            produto.atualizar_quantidade(quantidade)
-            produto.atualizar_preco(preco)
-            self.salvar_estoque()
-            print(f"{Fore.GREEN}Produto {produto.nome} atualizado com sucesso!{Style.RESET_ALL}")
-        else:
+        if not produto:
             print(f"{Fore.RED}Produto com ID {id_produto} não encontrado.{Style.RESET_ALL}")
+            return
+        if quantidade is None and preco is None:
+            print(f"{Fore.YELLOW}Nenhuma alteração informada. Produto mantido como está.{Style.RESET_ALL}")
+            return
+        if quantidade is not None and quantidade < 0:
+            print(f"{Fore.RED}Quantidade não pode ser negativa.{Style.RESET_ALL}")
+            return
+        if preco is not None and preco < 0:
+            print(f"{Fore.RED}Preço não pode ser negativo.{Style.RESET_ALL}")
+            return
+        produto.atualizar_quantidade(quantidade)
+        produto.atualizar_preco(preco)
+        self.salvar_estoque()
+        print(f"{Fore.GREEN}Produto {produto.nome} atualizado com sucesso!{Style.RESET_ALL}")
 
     def remover_produto(self, id_produto: int):
         if self.produto_existe(id_produto):
@@ -148,20 +163,22 @@ class SistemaEstoque:
         self.perguntar_proximo_passo()
 
     def salvar_estoque(self):
-        with open(self.arquivo_json, 'w') as arquivo:
-            json.dump({id_produto: produto.to_dict() for id_produto, produto in self.estoque.items()}, arquivo)
+        with open(self.arquivo_json, 'w', encoding='utf-8') as arquivo:
+            json.dump({id_produto: produto.to_dict() for id_produto, produto in self.estoque.items()}, arquivo, ensure_ascii=False, indent=2)
         print(f"{Fore.GREEN}Estoque salvo em {self.arquivo_json}.{Style.RESET_ALL}")
 
     def carregar_estoque(self):
         try:
-            with open(self.arquivo_json, 'r') as arquivo:
+            with open(self.arquivo_json, 'r', encoding='utf-8') as arquivo:
                 dados_estoque = json.load(arquivo)
                 self.estoque = {int(id_produto): Produto.from_dict(dados) for id_produto, dados in dados_estoque.items()}
             print(f"{Fore.GREEN}Estoque carregado de {self.arquivo_json}.{Style.RESET_ALL}")
         except FileNotFoundError:
             print(f"{Fore.YELLOW}Arquivo {self.arquivo_json} não encontrado, iniciando com estoque vazio.{Style.RESET_ALL}")
 
-    def produtos_proximos_vencimento(self, dias=30):
+    def produtos_proximos_vencimento(self, dias=None):
+        if dias is None:
+            dias = 30
         hoje = datetime.now()
         proximos = [
             produto for produto in self.estoque.values()
@@ -186,10 +203,7 @@ class SistemaEstoque:
         self.perguntar_proximo_passo()
 
     def perguntar_proximo_passo(self):
-        opcao = input(f"{PALETA_MENU}Deseja voltar ao menu? (s/n): {Style.RESET_ALL}")
-        if opcao.lower() != 's':
-            print(f"{Fore.LIGHTMAGENTA_EX}Encerrando o sistema...{Style.RESET_ALL}")
-            exit()
+        input(f"{PALETA_MENU}Pressione Enter para voltar ao menu...{Style.RESET_ALL}")
 
     def buscar_com_filtros_interativo(self):
         print(f"\n{PALETA_EXIBIR['titulo']}--- Buscar Produtos com Filtros ---{Style.RESET_ALL}\n")
@@ -204,16 +218,19 @@ class SistemaEstoque:
         print("Selecione apenas um filtro que deseja aplicar:")
         for chave, valor in filtros_disponiveis.items():
             print(f"{chave}. {valor}")
-        print("6. Iniciar busca")
+        print("6. Mostrar todos (sem filtro)")
 
         escolha = input(f"{PALETA_EXIBIR['input']}Escolha uma opção (1-6): {Style.RESET_ALL}")
 
-        if escolha not in filtros_disponiveis:
+        if escolha not in filtros_disponiveis and escolha != '6':
             print(f"{Fore.RED}Opção inválida, tente novamente.{Style.RESET_ALL}")
             return
 
         nome = id_produto = quantidade_min = preco_max = validade_min = None
 
+        if escolha == '6':
+            self.buscar_com_filtros()
+            return
         if escolha == '1':
             nome = input(f"{PALETA_EXIBIR['input']}Nome do Produto: {Style.RESET_ALL}")
         elif escolha == '2':
@@ -273,15 +290,30 @@ def main():
 
         if opcao == '1':
             print(f"\n{PALETA_ADICIONAR['titulo']}--- Adicionar Produto ---{Style.RESET_ALL}\n")
-            id_produto = entrada_inteira(f"{PALETA_ADICIONAR['input']}ID do Produto: {Style.RESET_ALL}")
+            sugere_id = sistema_estoque.proximo_id_disponivel()
+            id_produto = entrada_inteira(f"{PALETA_ADICIONAR['input']}ID do Produto (sugestão: {sugere_id}, ou Enter para usar): {Style.RESET_ALL}")
+            if id_produto is None:
+                id_produto = sugere_id
             if sistema_estoque.produto_existe(id_produto):
                 print(f"{Fore.RED}Produto com ID {id_produto} já existe.{Style.RESET_ALL}")
                 continue
 
-            nome = input(f"{PALETA_ADICIONAR['input']}Nome do Produto: {Style.RESET_ALL}")
+            nome = input(f"{PALETA_ADICIONAR['input']}Nome do Produto: {Style.RESET_ALL}").strip()
+            if not nome:
+                print(f"{Fore.RED}Nome é obrigatório.{Style.RESET_ALL}")
+                continue
             quantidade = entrada_inteira(f"{PALETA_ADICIONAR['input']}Quantidade: {Style.RESET_ALL}")
+            if quantidade is None or quantidade < 0:
+                print(f"{Fore.RED}Quantidade inválida (use um número inteiro >= 0).{Style.RESET_ALL}")
+                continue
             preco = entrada_float(f"{PALETA_ADICIONAR['input']}Preço: R$ {Style.RESET_ALL}")
+            if preco is None or preco < 0:
+                print(f"{Fore.RED}Preço inválido (use um valor >= 0).{Style.RESET_ALL}")
+                continue
             validade = entrada_data(f"{PALETA_ADICIONAR['input']}Data de Validade (dd/mm/yyyy): {Style.RESET_ALL}")
+            if validade is None:
+                print(f"{Fore.RED}Data de validade é obrigatória.{Style.RESET_ALL}")
+                continue
             produto = Produto(id_produto, nome, quantidade, preco, validade)
             sistema_estoque.adicionar_produto(produto)
 
