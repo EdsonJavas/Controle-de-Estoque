@@ -1,18 +1,4 @@
 {
-  "2121": {
-    "id_produto": 2121,
-    "nome": "maca",
-    "quantidade": 50,
-    "preco": 2.5,
-    "validade": "05/09/2024"
-  },
-  "2222": {
-    "id_produto": 2222,
-    "nome": "coca-cola",
-    "quantidade": 150,
-    "preco": 9.5,
-    "validade": "05/09/2024"
-  },
   "9090": {
     "id_produto": 9090,
     "nome": "goiaba",
@@ -75,5 +61,12 @@
     "quantidade": 2000,
     "preco": 1000000.0,
     "validade": "22/05/2027"
+  },
+  "9092": {
+    "id_produto": 9092,
+    "nome": "Guilheme",
+    "quantidade": 1,
+    "preco": 1000.0,
+    "validade": "16/07/2030"
   }
 }
